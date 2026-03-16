@@ -93,6 +93,7 @@ const GameGrid = forwardRef(function GameGrid({ monsters, cannon, locked, player
             backgroundColor: playerColor,
             opacity: 0.5,
             boxShadow: `0 0 6px 2px ${playerColor}, 0 0 12px 4px ${playerColor}40`,
+            transition: 'top 300ms ease-out, height 300ms ease-out',
             pointerEvents: 'none',
             zIndex: 2,
           }} />
