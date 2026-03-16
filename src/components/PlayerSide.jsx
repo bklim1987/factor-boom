@@ -34,7 +34,7 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
     const startX = col * (cellW + GAP) + cellW / 2;
     const startY = rect.height;
 
-    const monstersInCol = player.monsters.filter(m => m.col === col && !m.dying);
+    const monstersInCol = player.monsters.filter(m => m.col === col);
     let endY, hit;
     if (monstersInCol.length > 0) {
       monstersInCol.sort((a, b) => b.row - a.row);
