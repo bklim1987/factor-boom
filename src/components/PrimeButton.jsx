@@ -20,7 +20,7 @@ export default function PrimeButton({ prime, disabled, playerColor, onFire }) {
         flex: 1,
         height: '100%',
         minHeight: '48px',
-        fontSize: '17px',
+        fontSize: '19px',
         fontWeight: 'bold',
         border: `2px solid ${disabled ? '#555' : playerColor}`,
         borderRadius: '8px',

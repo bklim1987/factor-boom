@@ -74,39 +74,46 @@ const GameGrid = forwardRef(function GameGrid({ monsters, cannon, locked, player
 
       {dims.w > 0 && (() => {
         const cannonCenter = colX(cannon) + cellW / 2;
+        const activeInCol = monsters.filter(m => m.col === cannon && !m.dying);
+        let targetId = null;
+        let monsterY;
+
+        if (activeInCol.length > 0) {
+          const lowest = activeInCol.reduce((a, b) => a.row > b.row ? a : b);
+          targetId = lowest.id;
+          monsterY = rowY(lowest.row) + cellH * 0.8;
+        } else {
+          monsterY = 0;
+        }
+
+        let beamTop = monsterY;
+
         const inFlightInCol = (projectiles || []).filter(
           p => p.col === cannon && (p.progress ?? 1) < 1
         );
-        let beamTop;
         if (inFlightInCol.length > 0) {
-          const currentYs = inFlightInCol.map(p => {
-            const prog = p.progress ?? 0;
-            return p.startY + (p.endY - p.startY) * prog;
-          });
-          beamTop = Math.min(...currentYs);
-        } else {
-          const activeInCol = monsters.filter(m => m.col === cannon && !m.dying);
-          if (activeInCol.length > 0) {
-            const lowest = activeInCol.reduce((a, b) => a.row > b.row ? a : b);
-            beamTop = rowY(lowest.row) + cellH * 0.8;
-          } else {
-            beamTop = 0;
-          }
+          const blockY = Math.max(...inFlightInCol.map(p => p.endY));
+          beamTop = Math.max(beamTop, blockY);
         }
+
+        const blocked = inFlightInCol.length > 0;
         const laserHeight = dims.h - beamTop;
         return (
-          <div style={{
-            position: 'absolute',
-            left: cannonCenter - 1,
-            top: beamTop,
-            width: '2px',
-            height: `${laserHeight}px`,
-            backgroundColor: playerColor,
-            opacity: 0.5,
-            boxShadow: `0 0 6px 2px ${playerColor}, 0 0 12px 4px ${playerColor}40`,
-            pointerEvents: 'none',
-            zIndex: 2,
-          }} />
+          <div
+            key={`laser-${cannon}-${targetId}-${blocked}`}
+            style={{
+              position: 'absolute',
+              left: cannonCenter - 1,
+              top: beamTop,
+              width: '2px',
+              height: `${laserHeight}px`,
+              backgroundColor: playerColor,
+              opacity: 0.5,
+              boxShadow: `0 0 6px 2px ${playerColor}, 0 0 12px 4px ${playerColor}40`,
+              pointerEvents: 'none',
+              zIndex: 2,
+              transition: 'top 300ms ease-out, height 300ms ease-out',
+            }} />
         );
       })()}
 
