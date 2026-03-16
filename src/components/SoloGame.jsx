@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, DEFAULT_DURATION } from '../utils/constants.js';
+import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, DEFAULT_DURATION, PROJECTILE_FLIGHT_MS } from '../utils/constants.js';
 import { useSoloGameLoop } from '../hooks/useSoloGameLoop.js';
 import { saveScore } from '../utils/scores.js';
 import { playVictory } from '../utils/sounds.js';
@@ -323,6 +323,7 @@ export default function SoloGame({ onBack, onLeaderboard }) {
     setProjectiles(prev => [...prev, {
       id: Date.now() + Math.random(),
       prime, startX, startY, endX: startX, endY, hit,
+      col, addedAt: Date.now(),
     }]);
   };
 
@@ -399,7 +400,10 @@ export default function SoloGame({ onBack, onLeaderboard }) {
           locked={player.locked}
           playerColor={COLORS.playerA}
           onColumnClick={(col) => moveCannon(col)}
-          projectiles={projectiles}
+          projectiles={projectiles.map(p => ({
+            ...p,
+            progress: Math.min(1, (Date.now() - (p.addedAt ?? 0)) / PROJECTILE_FLIGHT_MS),
+          }))}
           onProjectileDone={removeProjectile}
           escapeEffects={player.escapeEffects}
         />

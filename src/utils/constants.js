@@ -9,6 +9,7 @@ export const MISS_FLASH_DURATION = 500;
 export const COMBO_THRESHOLD = 10;
 export const COMBO_MULTIPLIER = 1.5;
 export const DEFAULT_DURATION = 60;
+export const PROJECTILE_FLIGHT_MS = 200;
 
 export const MONSTER_TYPES = {
   small: { factorCount: 2, pts: 100, fallMs: 3000, label: null, color: { bg: '#064e3b', border: '#10b981', text: '#6ee7b7' } },

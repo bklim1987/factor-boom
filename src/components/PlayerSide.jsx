@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION } from '../utils/constants.js';
+import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, PROJECTILE_FLIGHT_MS } from '../utils/constants.js';
 import GameGrid from './GameGrid.jsx';
 import PrimeButton from './PrimeButton.jsx';
 
@@ -54,6 +54,8 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
       endX: startX,
       endY,
       hit,
+      col,
+      addedAt: Date.now(),
     }]);
   }, [side, onShoot, player.cannon, player.monsters]);
 
@@ -136,7 +138,10 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
         locked={player.locked}
         playerColor={playerColor}
         onColumnClick={(col) => onMove(side, col)}
-        projectiles={projectiles}
+        projectiles={projectiles.map(p => ({
+          ...p,
+          progress: Math.min(1, (Date.now() - (p.addedAt ?? 0)) / PROJECTILE_FLIGHT_MS),
+        }))}
         onProjectileDone={removeProjectile}
         escapeEffects={player.escapeEffects}
       />
