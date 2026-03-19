@@ -152,7 +152,8 @@ export function useSoloGameLoop(duration, onEnd) {
       }
     }
 
-    if (p.monsters.length === 0) {
+    // 保证画面上始终至少有两只怪兽可打：只剩 1 只时立刻补一只
+    if (p.monsters.length === 1) {
       p.monsters.push(createMonster('small', p.monsters));
       p.spawnAcc = 0;
     }

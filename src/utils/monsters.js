@@ -6,18 +6,20 @@ function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// BOSS 难度限制：质因数中 13 最多 2 个，7 最多 3 个
-const BOSS_MAX_13 = 2;
-const BOSS_MAX_7 = 3;
-
+// BOSS 生成条件限制（基于“已选”质因数动态过滤可选项）
+// 1. 已经有 2 个 7，则禁止使用 13
+// 2. 已经有 2 个 13，则禁止使用 7 和 13
 function pickPrimeForBoss(factorsSoFar) {
-  const count13 = factorsSoFar.filter((p) => p === 13).length;
   const count7 = factorsSoFar.filter((p) => p === 7).length;
+  const count13 = factorsSoFar.filter((p) => p === 13).length;
+
   const allowed = PRIMES.filter((p) => {
-    if (p === 13 && count13 >= BOSS_MAX_13) return false;
-    if (p === 7 && count7 >= BOSS_MAX_7) return false;
+    if (p === 13 && count7 >= 2) return false;
+    if ((p === 7 || p === 13) && count13 >= 2) return false;
     return true;
   });
+
+  // 理论上 allowed 不会为空；兜底避免极端情况下报错
   return pickRandom(allowed.length ? allowed : PRIMES);
 }
 
