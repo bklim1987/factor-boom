@@ -269,9 +269,15 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
     return () => { if (renderRef.current) clearInterval(renderRef.current); };
   }, [init, startCountdown, getState]);
 
-  // 平台模式：每 100ms 对账一次，把分数「增量」报给平台（含负分——怪逃脱扣分）
+  // 平台模式：每 100ms 对账一次，把分数「增量」报给平台（含负分——怪逃脱扣分）。
+  //
+  // ⚠ 依赖数组只放 getState（稳定），绝不放 arena！
+  //   ArenaGame 每次渲染都新建 arenaHooks 对象，且每报一次分就 setLastScore→重渲染。
+  //   若把 arena 放进依赖，本 effect 会随之反复拆装：定时器每次重建，闭包里的 last 归零，
+  //   下一拍就把「当前总分」当增量重报一遍 → 平台分每 100ms 翻涌暴走（-800 报成 -97100）。
+  //   回调本就走 arenaRef.current，无需 arena 进依赖。装一次、last 常驻，才对得上账。
   useEffect(() => {
-    if (!arena) return;
+    if (!arenaRef.current) return; // 非平台模式（solo/duo）不上报
     let last = 0;
     const t = setInterval(() => {
       const s = getState();
@@ -280,7 +286,7 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
       if (sc !== last) { arenaRef.current?.onScoreDelta?.(sc - last); last = sc; }
     }, 100);
     return () => clearInterval(t);
-  }, [arena, getState]);
+  }, [getState]);
 
 
   const state = getState();
