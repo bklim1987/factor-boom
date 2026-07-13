@@ -230,16 +230,26 @@ function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
   );
 }
 
-export default function SoloGame({ onBack, onLeaderboard }) {
+export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
+  // arena（可选）：Arena 平台模式的钩子，不传则一切照旧（solo/duo 零改动）。
+  //   { durationSec, onScoreDelta(delta), onLocalEnd({score,kills}) }
+  //   平台模式下：时长来自平台、跳过自带 3-2-1（平台已经数过）、
+  //   分数按增量上报（含逃脱的负分）、结束页换成等待结算的简单画面。
   const [, forceUpdate] = useState(0);
   const [endState, setEndState] = useState(null);
   const [projectiles, setProjectiles] = useState([]);
   const gridRef = useRef(null);
 
-  const duration = DEFAULT_DURATION;
+  const duration = arena?.durationSec || DEFAULT_DURATION;
+
+  const arenaRef = useRef(arena);
+  arenaRef.current = arena;
 
   const handleEnd = useCallback((state) => {
     setEndState({ player: { ...state.player } });
+    if (arenaRef.current) {
+      arenaRef.current.onLocalEnd?.({ score: state.player.score, kills: state.player.kills });
+    }
   }, []);
 
   const { getState, init, startCountdown, moveCannon, shoot } = useSoloGameLoop(duration, handleEnd);
@@ -249,15 +259,48 @@ export default function SoloGame({ onBack, onLeaderboard }) {
   useEffect(() => {
     init();
     startCountdown();
+    if (arenaRef.current) {
+      // 平台模式：挂载即开打（本组件在 arena:start 之后才被挂载，
+      // 平台的 3·2·1 已经数完，不再重复游戏自带的倒数）
+      const s = getState();
+      if (s) { s.phase = 'playing'; s.running = true; }
+    }
     renderRef.current = setInterval(() => forceUpdate(n => n + 1), 50);
     return () => { if (renderRef.current) clearInterval(renderRef.current); };
-  }, [init, startCountdown]);
+  }, [init, startCountdown, getState]);
+
+  // 平台模式：每 100ms 对账一次，把分数「增量」报给平台（含负分——怪逃脱扣分）
+  useEffect(() => {
+    if (!arena) return;
+    let last = 0;
+    const t = setInterval(() => {
+      const s = getState();
+      if (!s || !s.player) return;
+      const sc = s.player.score;
+      if (sc !== last) { arenaRef.current?.onScoreDelta?.(sc - last); last = sc; }
+    }, 100);
+    return () => clearInterval(t);
+  }, [arena, getState]);
 
 
   const state = getState();
   if (!state) return null;
 
   if (endState) {
+    if (arena) {
+      // 平台模式的收尾：不出成绩录入页（平台自己有结算面板与排行榜）
+      return (
+        <div style={{
+          width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: '14px',
+          backgroundColor: COLORS.bg, color: '#e5e7eb',
+        }}>
+          <div style={{ fontSize: '28px', color: '#fbbf24', fontWeight: 'bold' }}>时间到！</div>
+          <div style={{ fontSize: '52px', fontWeight: 'bold', color: COLORS.playerA }}>{endState.player.score}</div>
+          <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
+        </div>
+      );
+    }
     return (
       <SoloResults
         player={endState.player}
