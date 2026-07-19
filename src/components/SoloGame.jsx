@@ -303,7 +303,12 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
         }}>
           <div style={{ fontSize: '28px', color: '#fbbf24', fontWeight: 'bold' }}>时间到！</div>
           <div style={{ fontSize: '52px', fontWeight: 'bold', color: COLORS.playerA }}>{endState.player.score}</div>
-          <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
+          {/* 练习模式不显示「等待全场结算」（BK 定 2026-07-13）：
+              那是比赛等统一收场的文案，练习没有全场。
+              arena.practice 由 ArenaGame 的 arenaHooks 传入（见 PATCH-README 增补节） */}
+          {!arena.practice && (
+            <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
+          )}
         </div>
       );
     }

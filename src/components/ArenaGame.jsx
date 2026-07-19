@@ -89,6 +89,7 @@ export default function ArenaGame() {
 
   const arenaHooks = {
     durationSec,
+    practice: isPractice,
     onScoreDelta: (delta) => {
       statsRef.current.score += delta;
       setLastScore(statsRef.current.score);
