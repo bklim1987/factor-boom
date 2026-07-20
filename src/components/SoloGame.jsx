@@ -22,9 +22,24 @@ function buildSoloStats(player) {
   ];
 }
 
-function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
-  const [name, setName] = useState('');
-  const [saved, setSaved] = useState(false);
+const soloResultScreenStyle = {
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  backgroundColor: COLORS.bg,
+  color: '#e5e7eb',
+  gap: '16px',
+  paddingTop: '8vh',
+  paddingBottom: '20px',
+  paddingLeft: '20px',
+  paddingRight: '20px',
+  overflow: 'auto',
+};
+
+function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
   const [revealStep, setRevealStep] = useState(0);
 
   const played = useRef(false);
@@ -35,49 +50,18 @@ function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
     }
   }, []);
 
-  const [showButtons, setShowButtons] = useState(false);
-
   useEffect(() => {
     if (revealStep < 4) {
       const timer = setTimeout(() => setRevealStep(s => s + 1), 500);
       return () => clearTimeout(timer);
     }
-    const btnTimer = setTimeout(() => setShowButtons(true), 500);
+    if (!onStatsRevealed) return undefined;
+    const btnTimer = setTimeout(onStatsRevealed, 500);
     return () => clearTimeout(btnTimer);
-  }, [revealStep]);
-
-  const handleSave = () => {
-    const finalName = name.trim() || '单人挑战';
-    saveScore({
-      mode: 'solo',
-      name: finalName,
-      score: player.score,
-      kills: player.kills,
-      maxCombo: player.maxCombo,
-      missed: player.missed,
-      locks: player.locks,
-      result: 'solo',
-    });
-    setSaved(true);
-  };
+  }, [revealStep, onStatsRevealed]);
 
   return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      backgroundColor: COLORS.bg,
-      color: '#e5e7eb',
-      gap: '16px',
-      paddingTop: '8vh',
-      paddingBottom: '20px',
-      paddingLeft: '20px',
-      paddingRight: '20px',
-      overflow: 'auto',
-    }}>
+    <>
       <h1 style={{ fontSize: '32px', color: '#fbbf24' }}>挑战结束！</h1>
 
       <div style={{
@@ -111,6 +95,40 @@ function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
           ))}
         </div>
       </div>
+
+      {footer}
+    </>
+  );
+}
+
+function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
+  const [name, setName] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [showButtons, setShowButtons] = useState(false);
+
+  const handleStatsRevealed = useCallback(() => setShowButtons(true), []);
+
+  const handleSave = () => {
+    const finalName = name.trim() || '单人挑战';
+    saveScore({
+      mode: 'solo',
+      name: finalName,
+      score: player.score,
+      kills: player.kills,
+      maxCombo: player.maxCombo,
+      missed: player.missed,
+      locks: player.locks,
+      result: 'solo',
+    });
+    setSaved(true);
+  };
+
+  return (
+    <div style={soloResultScreenStyle}>
+      <SoloResultCard
+        player={player}
+        onStatsRevealed={handleStatsRevealed}
+      />
 
       {showButtons && (
         <div style={{
@@ -294,21 +312,14 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
 
   if (endState) {
     if (arena) {
-      // 平台模式的收尾：不出成绩录入页（平台自己有结算面板与排行榜）
       return (
-        <div style={{
-          width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: '14px',
-          backgroundColor: COLORS.bg, color: '#e5e7eb',
-        }}>
-          <div style={{ fontSize: '28px', color: '#fbbf24', fontWeight: 'bold' }}>时间到！</div>
-          <div style={{ fontSize: '52px', fontWeight: 'bold', color: COLORS.playerA }}>{endState.player.score}</div>
-          {/* 练习模式不显示「等待全场结算」（BK 定 2026-07-13）：
-              那是比赛等统一收场的文案，练习没有全场。
-              arena.practice 由 ArenaGame 的 arenaHooks 传入（见 PATCH-README 增补节） */}
-          {!arena.practice && (
-            <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
-          )}
+        <div style={soloResultScreenStyle}>
+          <SoloResultCard
+            player={endState.player}
+            footer={!arena.practice ? (
+              <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
+            ) : null}
+          />
         </div>
       );
     }
