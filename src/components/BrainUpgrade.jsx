@@ -1,7 +1,25 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { analyzeMistakes } from '../utils/brainUpgrade.js';
 
-const ACCENT = '#a78bfa';
+// 金色，和玩家 B 的紫色错开。玩家色只出现在各自的卡片边框上。
+const ACCENT = '#fbbf24';
+
+const buttonBase = {
+  padding: '12px 14px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  backgroundColor: 'transparent',
+  color: ACCENT,
+  border: `2px solid ${ACCENT}`,
+  borderRadius: '12px',
+  cursor: 'pointer',
+  touchAction: 'manipulation',
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+  minHeight: '48px',
+  boxSizing: 'border-box',
+};
 
 function MistakeCard({ name, color, player }) {
   const a = analyzeMistakes(player);
@@ -99,36 +117,20 @@ function MistakeCard({ name, color, player }) {
 }
 
 // cards: [{ name, color, player }] —— 单人给一张，双人给两张
-export default function BrainUpgrade({ cards }) {
+export default function BrainUpgrade({ cards, buttonStyle = null }) {
   const [open, setOpen] = useState(false);
   const list = (cards || []).filter((c) => c && c.player);
   if (list.length === 0) return null;
 
-  if (!open) {
-    return (
+  return (
+    <>
       <button
         onPointerDown={(e) => { e.preventDefault(); setOpen(true); }}
-        style={{
-          padding: '12px 32px',
-          fontSize: '17px',
-          fontWeight: 'bold',
-          backgroundColor: '#6d28d9',
-          color: '#fff',
-          border: `2px solid ${ACCENT}`,
-          borderRadius: '12px',
-          cursor: 'pointer',
-          touchAction: 'manipulation',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          minHeight: '50px',
-        }}
+        style={{ ...buttonBase, ...buttonStyle }}
       >
         🧠 升级大脑
       </button>
-    );
-  }
-
-  return (
+      {open && createPortal(
     <div
       style={{
         position: 'fixed',
@@ -183,6 +185,9 @@ export default function BrainUpgrade({ cards }) {
       >
         知道了
       </button>
-    </div>
+    </div>,
+    document.body,
+      )}
+    </>
   );
 }

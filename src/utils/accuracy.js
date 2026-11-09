@@ -39,6 +39,13 @@ export function escapeScoreOf(player) {
   return player?.escapeScore || 0;
 }
 
+// 奖励公布前结算页先显示这个数。player.score 本身一直是加完奖励的最终分，
+// 上报给 arena / tournament hub 用的也是它，滚动动画只改画面上的数字。
+export function scoreBeforeBonus(player) {
+  if (typeof player?.baseScore === 'number') return player.baseScore;
+  return (player?.score || 0) - (player?.accuracyBonus || 0);
+}
+
 // 局末调用：把奖励加进总分，过程留在 player 上给结算页显示
 export function applyAccuracyBonus(player) {
   const { rate, shots } = getAccuracy(player);

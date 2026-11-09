@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { COLORS } from '../utils/constants.js';
 import { playVictory } from '../utils/sounds.js';
 import { saveScore } from '../utils/scores.js';
-import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf } from '../utils/accuracy.js';
+import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf, scoreBeforeBonus } from '../utils/accuracy.js';
 import BrainUpgrade from './BrainUpgrade.jsx';
+import ScoreRoll from './ScoreRoll.jsx';
+import ResultActions from './ResultActions.jsx';
 
 const inputStyle = {
   padding: '6px 10px',
@@ -164,9 +166,12 @@ export default function Results({ playerA, playerB, nameA, nameB, difficulty, is
                   {name}
                 </div>
               )}
-              <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
-                {player.score}
-              </div>
+              <ScoreRoll
+                from={scoreBeforeBonus(player)}
+                to={player.score}
+                roll={revealStep > stats.findIndex((s) => s.highlight)}
+                fontSize={36}
+              />
               <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>小怪+大怪+BOSS</div>
               <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.8 }}>
                 {stats.map((s, i) => (
@@ -178,112 +183,27 @@ export default function Results({ playerA, playerB, nameA, nameB, difficulty, is
         })}
       </div>
 
-      {showButtons && (
-        <div style={{ animation: 'fadeIn 0.4s ease-in' }}>
-          <BrainUpgrade
-            cards={[
-              { name: editNameA, color: COLORS.playerA, player: playerA },
-              { name: editNameB, color: COLORS.playerB, player: playerB },
-            ]}
-          />
-        </div>
+      {showButtons && isTournament && (
+        <BrainUpgrade
+          cards={[
+            { name: editNameA, color: COLORS.playerA, player: playerA },
+            { name: editNameB, color: COLORS.playerB, player: playerB },
+          ]}
+        />
       )}
 
       {showButtons && !isTournament && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '12px',
-          animation: 'fadeIn 0.4s ease-in',
-        }}>
-          {!saved ? (
-            <button
-              onPointerDown={(e) => { e.preventDefault(); handleSave(); }}
-              style={{
-                padding: '12px 36px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                backgroundColor: '#10b981',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                minHeight: '50px',
-              }}
-            >
-              保存成绩
-            </button>
-          ) : (
-            <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>成绩已保存</div>
-          )}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              onPointerDown={(e) => { e.preventDefault(); onRestart(); }}
-              style={{
-                padding: '16px 48px',
-                fontSize: '20px',
-                fontWeight: 'bold',
-                backgroundColor: '#fbbf24',
-                color: '#000',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                minHeight: '56px',
-              }}
-            >
-              再来一局
-            </button>
-            {onBack && (
-              <button
-                onPointerDown={(e) => { e.preventDefault(); onBack(); }}
-                style={{
-                  padding: '16px 48px',
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  backgroundColor: 'transparent',
-                  color: '#9ca3af',
-                  border: '2px solid #374151',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  touchAction: 'manipulation',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  minHeight: '56px',
-                }}
-              >
-                返回主页
-              </button>
-            )}
-          </div>
-          {onLeaderboard && (
-            <button
-              onPointerDown={(e) => { e.preventDefault(); onLeaderboard(); }}
-              style={{
-                padding: '10px 32px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                backgroundColor: 'transparent',
-                color: '#9ca3af',
-                border: '2px solid #374151',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                minHeight: '44px',
-              }}
-            >
-              查看排行榜
-            </button>
-          )}
-        </div>
+        <ResultActions
+          brainCards={[
+            { name: editNameA, color: COLORS.playerA, player: playerA },
+            { name: editNameB, color: COLORS.playerB, player: playerB },
+          ]}
+          saved={saved}
+          onSave={handleSave}
+          onRestart={onRestart}
+          onBack={onBack}
+          onLeaderboard={onLeaderboard}
+        />
       )}
     </div>
   );

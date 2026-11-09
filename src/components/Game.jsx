@@ -36,6 +36,7 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
   const handleEnd = useCallback((state) => {
     setEndState({ playerA: { ...state.playerA }, playerB: { ...state.playerB } });
 
+    // 已经含准确率奖励的最终分。结算页的滚动是纯展示，上报不能等动画播完。
     const scoreA = state.playerA.score;
     const scoreB = state.playerB.score;
     const winner = scoreA > scoreB ? 'A' : scoreB > scoreA ? 'B' : 'draw';

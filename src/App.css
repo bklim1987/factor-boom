@@ -82,3 +82,8 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+@keyframes scoreDigit {
+  from { transform: translateY(0.55em); opacity: 0.15; }
+  to { transform: translateY(0); opacity: 1; }
+}

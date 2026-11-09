@@ -9,8 +9,10 @@ import PrimeButton from './PrimeButton.jsx';
 import Timer from './Timer.jsx';
 import ViewSizeToggle from './ViewSizeToggle.jsx';
 import { loadViewSize, saveViewSize, viewSizeStyle } from '../utils/viewSize.js';
-import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf } from '../utils/accuracy.js';
+import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf, scoreBeforeBonus } from '../utils/accuracy.js';
 import BrainUpgrade from './BrainUpgrade.jsx';
+import ScoreRoll from './ScoreRoll.jsx';
+import ResultActions from './ResultActions.jsx';
 
 function formatDetail(detail) {
   return `${detail.small}+${detail.big}+${detail.boss}`;
@@ -55,6 +57,7 @@ const soloResultScreenStyle = {
 function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
   const [revealStep, setRevealStep] = useState(0);
   const stats = buildSoloStats(player);
+  const bonusAt = stats.findIndex((s) => s.highlight);
 
   const played = useRef(false);
   useEffect(() => {
@@ -89,9 +92,12 @@ function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
         animation: 'winnerPulse 1.5s ease-in-out infinite',
       }}>
         <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '4px' }}>得分</div>
-        <div style={{ fontSize: '48px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>
-          {player.score}
-        </div>
+        <ScoreRoll
+          from={scoreBeforeBonus(player)}
+          to={player.score}
+          roll={revealStep > bonusAt}
+          fontSize={48}
+        />
         <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>小怪+大怪+BOSS</div>
         <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.8 }}>
           {stats.map((s, i) => (
@@ -146,120 +152,16 @@ function SoloResults({ player, difficulty, onRestart, onBack, onLeaderboard }) {
       />
 
       {showButtons && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '10px',
-          animation: 'fadeIn 0.4s ease-in',
-        }}>
-          <BrainUpgrade cards={[{ color: COLORS.playerA, player }]} />
-
-          {!saved ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="输入名字（可选）"
-                style={{
-                  padding: '8px 12px',
-                  fontSize: '16px',
-                  backgroundColor: '#263040',
-                  color: '#e5e7eb',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  width: '200px',
-                  outline: 'none',
-                }}
-              />
-              <button
-                onPointerDown={(e) => { e.preventDefault(); handleSave(); }}
-                style={{
-                  padding: '12px 36px',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  backgroundColor: '#10b981',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  touchAction: 'manipulation',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  minHeight: '50px',
-                }}
-              >
-                保存成绩
-              </button>
-            </div>
-          ) : (
-            <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>成绩已保存</div>
-          )}
-
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              onPointerDown={(e) => { e.preventDefault(); onRestart(); }}
-              style={{
-                padding: '14px 36px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                backgroundColor: '#fbbf24',
-                color: '#000',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                minHeight: '52px',
-              }}
-            >
-              再来一局
-            </button>
-            <button
-              onPointerDown={(e) => { e.preventDefault(); onBack(); }}
-              style={{
-                padding: '14px 36px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                backgroundColor: 'transparent',
-                color: '#9ca3af',
-                border: '2px solid #374151',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                minHeight: '52px',
-              }}
-            >
-              返回主页
-            </button>
-          </div>
-          {onLeaderboard && (
-            <button
-              onPointerDown={(e) => { e.preventDefault(); onLeaderboard(); }}
-              style={{
-                padding: '10px 32px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                backgroundColor: 'transparent',
-                color: '#9ca3af',
-                border: '2px solid #374151',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                minHeight: '44px',
-              }}
-            >
-              查看排行榜
-            </button>
-          )}
-        </div>
+        <ResultActions
+          brainCards={[{ color: COLORS.playerA, player }]}
+          name={name}
+          onNameChange={setName}
+          saved={saved}
+          onSave={handleSave}
+          onRestart={onRestart}
+          onBack={onBack}
+          onLeaderboard={onLeaderboard}
+        />
       )}
     </div>
   );
@@ -307,7 +209,8 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
     setEndState({ player: { ...state.player } });
     if (arenaRef.current) {
       // 先补报一次：准确率奖励是局末才加到总分上的，而平台可能在同一刻
-      // 发来 arena:end 冻结报分，等下一次 100ms 对账就来不及了
+      // 发来 arena:end 冻结报分，等下一次 100ms 对账就来不及了。
+      // 这里的 score 是加完奖励的最终分。结算页上的数字滚动只是展示，不能推迟这笔上报。
       flushArenaScore();
       arenaRef.current.onLocalEnd?.({ score: state.player.score, kills: state.player.kills });
     }
