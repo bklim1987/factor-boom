@@ -109,7 +109,7 @@ function MistakeCard({ name, color, player }) {
       {a.kind === 'mistake' && a.others.length > 0 && (
         <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.8, marginTop: '12px', borderTop: '1px solid #263040', paddingTop: '8px' }}>
           本局还犯过：
-          {a.others.map((o) => `${o.title} ×${o.count}`).join('、')}
+          {a.others.map((o) => `${o.title}(${o.count}次)`).join('、')}
         </div>
       )}
     </div>

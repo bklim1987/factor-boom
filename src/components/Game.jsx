@@ -7,6 +7,7 @@ import Timer from './Timer.jsx';
 import Results from './Results.jsx';
 import ViewSizeToggle from './ViewSizeToggle.jsx';
 import { loadViewSize, saveViewSize } from '../utils/viewSize.js';
+import { playTimeUp } from '../utils/sounds.js';
 
 function getUrlParams() {
   const params = new URLSearchParams(window.location.search);
@@ -34,6 +35,7 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
   }, []);
 
   const handleEnd = useCallback((state) => {
+    playTimeUp();
     setEndState({ playerA: { ...state.playerA }, playerB: { ...state.playerB } });
 
     // 已经含准确率奖励的最终分。结算页的滚动是纯展示，上报不能等动画播完。
@@ -144,7 +146,7 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
           ))}
         </div>
         <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
-          画面尺寸：大屏铺满整个半边；紧凑把画面收窄并整体上移，按钮更靠手、左右不用大幅移动。
+          画面尺寸：大屏铺满整个半边；小屏收成手机画面并整体上移，按钮更靠手、左右不用大幅移动。
           <br />选择会被记住，对局中也能随时切换。
         </div>
       </div>

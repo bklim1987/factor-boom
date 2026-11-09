@@ -3,7 +3,7 @@ import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, DEFAULT_DUR
 import { useSoloGameLoop } from '../hooks/useSoloGameLoop.js';
 import { saveScore } from '../utils/scores.js';
 import { setMonsterDifficulty } from '../utils/monsters.js';
-import { playVictory } from '../utils/sounds.js';
+import { playTimeUp, playVictory } from '../utils/sounds.js';
 import GameGrid from './GameGrid.jsx';
 import PrimeButton from './PrimeButton.jsx';
 import Timer from './Timer.jsx';
@@ -11,7 +11,7 @@ import ViewSizeToggle from './ViewSizeToggle.jsx';
 import { loadViewSize, saveViewSize, viewSizeStyle } from '../utils/viewSize.js';
 import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf, scoreBeforeBonus } from '../utils/accuracy.js';
 import BrainUpgrade from './BrainUpgrade.jsx';
-import ScoreRoll from './ScoreRoll.jsx';
+import ScoreRoll, { rollDurationMs } from './ScoreRoll.jsx';
 import ResultActions from './ResultActions.jsx';
 
 function formatDetail(detail) {
@@ -56,26 +56,31 @@ const soloResultScreenStyle = {
 
 function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
   const [revealStep, setRevealStep] = useState(0);
+  const [celebrating, setCelebrating] = useState(false);
   const stats = buildSoloStats(player);
   const bonusAt = stats.findIndex((s) => s.highlight);
-
-  const played = useRef(false);
-  useEffect(() => {
-    if (!played.current) {
-      played.current = true;
-      playVictory();
-    }
-  }, []);
+  const rollMs = rollDurationMs(scoreBeforeBonus(player), player.score);
 
   useEffect(() => {
     if (revealStep < stats.length) {
       const timer = setTimeout(() => setRevealStep(s => s + 1), 500);
       return () => clearTimeout(timer);
     }
-    if (!onStatsRevealed) return undefined;
-    const btnTimer = setTimeout(onStatsRevealed, 500);
-    return () => clearTimeout(btnTimer);
-  }, [revealStep, stats.length, onStatsRevealed]);
+    // 明细播完、分数也跳到最终分，边框才开始闪
+    const timer = setTimeout(() => {
+      setCelebrating(true);
+      onStatsRevealed?.();
+    }, rollMs + 400);
+    return () => clearTimeout(timer);
+  }, [revealStep, stats.length, rollMs, onStatsRevealed]);
+
+  const played = useRef(false);
+  useEffect(() => {
+    if (!celebrating || played.current) return undefined;
+    played.current = true;
+    playVictory();
+    return undefined;
+  }, [celebrating]);
 
   return (
     <>
@@ -89,7 +94,7 @@ function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
         color: COLORS.playerA,
         minWidth: '200px',
         textAlign: 'center',
-        animation: 'winnerPulse 1.5s ease-in-out infinite',
+        animation: celebrating ? 'winnerPulse 1.5s ease-in-out infinite' : 'none',
       }}>
         <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '4px' }}>得分</div>
         <ScoreRoll
@@ -206,6 +211,7 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
   }, []);
 
   const handleEnd = useCallback((state) => {
+    playTimeUp();
     setEndState({ player: { ...state.player } });
     if (arenaRef.current) {
       // 先补报一次：准确率奖励是局末才加到总分上的，而平台可能在同一刻
@@ -313,7 +319,7 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
           onChange={changeViewSize}
         />
         <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
-          大屏上选「紧凑」可把画面收窄并整体上移，按钮更靠手、左右不用大幅移动。
+          选「小屏」可把画面收成手机大小并整体上移，按钮更靠手、左右不用大幅移动。
           <br />选择会被记住，对局中也能随时切换。
         </div>
       </div>

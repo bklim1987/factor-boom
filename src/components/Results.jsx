@@ -4,7 +4,7 @@ import { playVictory } from '../utils/sounds.js';
 import { saveScore } from '../utils/scores.js';
 import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf, scoreBeforeBonus } from '../utils/accuracy.js';
 import BrainUpgrade from './BrainUpgrade.jsx';
-import ScoreRoll from './ScoreRoll.jsx';
+import ScoreRoll, { rollDurationMs } from './ScoreRoll.jsx';
 import ResultActions from './ResultActions.jsx';
 
 const inputStyle = {
@@ -67,25 +67,33 @@ export default function Results({ playerA, playerB, nameA, nameB, difficulty, is
   const [editNameB, setEditNameB] = useState(nameB);
   const [saved, setSaved] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
+  const [showWinner, setShowWinner] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
 
-  const played = useRef(false);
-  useEffect(() => {
-    if (!played.current) {
-      played.current = true;
-      playVictory();
-    }
-  }, []);
-
   const STAT_COUNT = buildStats(playerA).length;
+  const rollMs = Math.max(
+    rollDurationMs(scoreBeforeBonus(playerA), playerA.score),
+    rollDurationMs(scoreBeforeBonus(playerB), playerB.score),
+  );
+
   useEffect(() => {
     if (revealStep < STAT_COUNT) {
       const timer = setTimeout(() => setRevealStep(s => s + 1), 500);
       return () => clearTimeout(timer);
     }
-    const btnTimer = setTimeout(() => setShowButtons(true), 500);
-    return () => clearTimeout(btnTimer);
-  }, [revealStep]);
+    // 最后一行是准确率奖励，大号分数还要跳完才算结算结束
+    const timer = setTimeout(() => setShowWinner(true), rollMs + 400);
+    return () => clearTimeout(timer);
+  }, [revealStep, rollMs]);
+
+  const celebrated = useRef(false);
+  useEffect(() => {
+    if (!showWinner || celebrated.current) return undefined;
+    celebrated.current = true;
+    playVictory();
+    const timer = setTimeout(() => setShowButtons(true), 500);
+    return () => clearTimeout(timer);
+  }, [showWinner]);
 
   const handleSave = () => {
     const resultA = winner === 'A' ? 'win' : winner === 'B' ? 'lose' : 'draw';
@@ -129,14 +137,18 @@ export default function Results({ playerA, playerB, nameA, nameB, difficulty, is
     }}>
       <h1 style={{ fontSize: '36px', color: '#fbbf24' }}>⏱ 时间到！</h1>
 
-      {winner !== 'draw' && (
-        <h2 style={{ fontSize: '24px', color: '#fbbf24' }}>
-          🏆 {winner === 'A' ? editNameA : editNameB} 胜利！
-        </h2>
-      )}
-      {winner === 'draw' && (
-        <h2 style={{ fontSize: '24px', color: '#9ca3af' }}>平局！</h2>
-      )}
+      <h2
+        aria-hidden={!showWinner}
+        style={{
+          fontSize: '24px',
+          minHeight: '32px',
+          color: winner === 'draw' ? '#9ca3af' : '#fbbf24',
+          opacity: showWinner ? 1 : 0,
+          transition: 'opacity 0.4s ease-in',
+        }}
+      >
+        {winner === 'draw' ? '平局！' : `🏆 ${winner === 'A' ? editNameA : editNameB} 胜利！`}
+      </h2>
 
       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {cards.map(({ side, name, setName, player, color }) => {
@@ -151,7 +163,7 @@ export default function Results({ playerA, playerB, nameA, nameB, difficulty, is
               color: color,
               minWidth: '200px',
               textAlign: 'center',
-              animation: isWinner ? 'winnerPulse 1.5s ease-in-out infinite' : 'none',
+              animation: showWinner && isWinner ? 'winnerPulse 1.5s ease-in-out infinite' : 'none',
             }}>
               {!isTournament && !saved ? (
                 <input

@@ -11,6 +11,12 @@ function plan(from, to) {
   return { steps: 16, gap: 55, delta };
 }
 
+// 和上面的跳动同一套时长，结算页用它决定什么时候才揭晓赢家
+export function rollDurationMs(from, to) {
+  const { steps, gap } = plan(from, to);
+  return steps * gap;
+}
+
 export default function ScoreRoll({ from, to, roll, fontSize = 48 }) {
   const [value, setValue] = useState(from);
   const [hot, setHot] = useState(false);

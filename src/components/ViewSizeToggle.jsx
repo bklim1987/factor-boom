@@ -3,8 +3,8 @@
 // 对局中缩在自己的信息栏里（随时能改，但不碍事）。
 // 对局中只给图标：信息栏要和名字、分数、连击挤在一行，文字会把名字顶成两行
 const OPTIONS = [
-  { value: 'full', icon: '🖥', label: '🖥 大屏', title: '铺满整块屏幕' },
-  { value: 'compact', icon: '📐', label: '📐 紧凑', title: '画面收窄并整体上移，按钮更靠手' },
+  { value: 'full', icon: '🖥️', label: '🖥️ 大屏', title: '铺满整块屏幕' },
+  { value: 'compact', icon: '📱', label: '📱 小屏', title: '收成手机画面，按钮更靠手' },
 ];
 
 export default function ViewSizeToggle({ value, playerColor = '#9ca3af', big = false, onChange }) {
