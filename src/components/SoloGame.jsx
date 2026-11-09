@@ -10,6 +10,7 @@ import Timer from './Timer.jsx';
 import ViewSizeToggle from './ViewSizeToggle.jsx';
 import { loadViewSize, saveViewSize, viewSizeStyle } from '../utils/viewSize.js';
 import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf } from '../utils/accuracy.js';
+import BrainUpgrade from './BrainUpgrade.jsx';
 
 function formatDetail(detail) {
   return `${detail.small}+${detail.big}+${detail.boss}`;
@@ -152,6 +153,8 @@ function SoloResults({ player, difficulty, onRestart, onBack, onLeaderboard }) {
           gap: '10px',
           animation: 'fadeIn 0.4s ease-in',
         }}>
+          <BrainUpgrade cards={[{ color: COLORS.playerA, player }]} />
+
           {!saved ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <input
@@ -356,9 +359,14 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
         <div style={soloResultScreenStyle}>
           <SoloResultCard
             player={endState.player}
-            footer={!arena.practice ? (
-              <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
-            ) : null}
+            footer={(
+              <>
+                <BrainUpgrade cards={[{ color: COLORS.playerA, player: endState.player }]} />
+                {!arena.practice && (
+                  <div style={{ fontSize: '14px', color: '#9ca3af' }}>等待全场结算…</div>
+                )}
+              </>
+            )}
           />
         </div>
       );

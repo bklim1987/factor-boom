@@ -25,6 +25,7 @@ function createPlayerState() {
     missDetail: { small: 0, big: 0, boss: 0 },
     hits: 0,  // 点对的次数（locks 是点错的次数）—— 两者算出准确率奖励
     locks: 0,
+    missShots: [],  // 每次点错时屏幕上的数字和点下的质数 —— 结算页「升级大脑」靠它分析
     missFlash: 0,
     screenShake: 0,
     escapeEffects: [],
@@ -267,6 +268,7 @@ export function useGameLoop(duration, onEnd) {
       p.combo = 0;
       p.mult = 1;
       p.locks += 1;
+      p.missShots.push({ value: target.value, prime });
       p.missFlash = 500;
       if (target.type === 'boss') {
         if (target.fallMs >= 3000) {

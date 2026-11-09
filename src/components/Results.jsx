@@ -3,6 +3,7 @@ import { COLORS } from '../utils/constants.js';
 import { playVictory } from '../utils/sounds.js';
 import { saveScore } from '../utils/scores.js';
 import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf } from '../utils/accuracy.js';
+import BrainUpgrade from './BrainUpgrade.jsx';
 
 const inputStyle = {
   padding: '6px 10px',
@@ -176,6 +177,17 @@ export default function Results({ playerA, playerB, nameA, nameB, difficulty, is
           );
         })}
       </div>
+
+      {showButtons && (
+        <div style={{ animation: 'fadeIn 0.4s ease-in' }}>
+          <BrainUpgrade
+            cards={[
+              { name: editNameA, color: COLORS.playerA, player: playerA },
+              { name: editNameB, color: COLORS.playerB, player: playerB },
+            ]}
+          />
+        </div>
+      )}
 
       {showButtons && !isTournament && (
         <div style={{
