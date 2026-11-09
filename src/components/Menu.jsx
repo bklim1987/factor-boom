@@ -15,7 +15,27 @@ const btnBase = {
   minWidth: '200px',
 };
 
-export default function Menu({ onStartSolo, onStartDuo, onLeaderboard }) {
+const diffBtn = (active) => ({
+  padding: '8px 22px',
+  fontSize: '15px',
+  fontWeight: 'bold',
+  backgroundColor: active ? '#fbbf24' : '#1a2234',
+  color: active ? '#000' : '#9ca3af',
+  border: `2px solid ${active ? '#fbbf24' : '#374151'}`,
+  borderRadius: '8px',
+  cursor: 'pointer',
+  touchAction: 'manipulation',
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
+  minHeight: '40px',
+});
+
+const DIFFICULTY_HINT = {
+  easy: '基础：大怪的 7、13 和 BOSS 的 7、11、13 各自最多出现一次',
+  normal: '进阶：不限制，大怪最大到 13×13×13',
+};
+
+export default function Menu({ difficulty = 'normal', onSelectDifficulty, onStartSolo, onStartDuo, onLeaderboard }) {
   return (
     <div style={{
       width: '100%',
@@ -23,13 +43,42 @@ export default function Menu({ onStartSolo, onStartDuo, onLeaderboard }) {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      // safe center：窗口放不下时不居中、不裁掉两头，配合下面的滚动仍能点到开始按钮
+      justifyContent: 'safe center',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
       backgroundColor: COLORS.bg,
       color: '#e5e7eb',
       padding: '20px',
       gap: '20px',
     }}>
       <RulesPanel />
+
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '6px',
+      }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: 'bold' }}>题目难度</span>
+          <button
+            onPointerDown={(e) => { e.preventDefault(); onSelectDifficulty?.('easy'); }}
+            style={diffBtn(difficulty === 'easy')}
+          >
+            基础
+          </button>
+          <button
+            onPointerDown={(e) => { e.preventDefault(); onSelectDifficulty?.('normal'); }}
+            style={diffBtn(difficulty === 'normal')}
+          >
+            进阶
+          </button>
+        </div>
+        <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', maxWidth: '420px' }}>
+          {DIFFICULTY_HINT[difficulty]}
+        </div>
+      </div>
 
       <div style={{
         display: 'flex',

@@ -2,8 +2,10 @@ import { useRef, useState, useCallback } from 'react';
 import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, PROJECTILE_FLIGHT_MS } from '../utils/constants.js';
 import GameGrid from './GameGrid.jsx';
 import PrimeButton from './PrimeButton.jsx';
+import ViewSizeToggle from './ViewSizeToggle.jsx';
+import { viewSizeStyle } from '../utils/viewSize.js';
 
-export default function PlayerSide({ player, name, side, playerColor, onMove, onShoot, timeLeft, duration }) {
+export default function PlayerSide({ player, name, side, playerColor, onMove, onShoot, timeLeft, duration, viewSize = 'full', onViewSizeChange }) {
   if (!player) return null;
 
   const [projectiles, setProjectiles] = useState([]);
@@ -66,8 +68,12 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
   return (
     <div style={{
       flex: 1,
+      minWidth: 0,
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
+      // 靠上对齐：紧凑模式下空白留在下方，按钮整体上移（大屏上不用往下伸手）
+      justifyContent: 'flex-start',
       height: '100%',
       padding: '4px',
       paddingBottom: '32px',
@@ -90,16 +96,24 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
         }} />
       )}
 
+      <div style={viewSizeStyle(viewSize)}>
+
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: '6px',
         padding: '4px 8px',
         minHeight: '5%',
         color: playerColor,
         fontSize: '14px',
         fontWeight: 'bold',
       }}>
+        <ViewSizeToggle
+          value={viewSize}
+          playerColor={playerColor}
+          onChange={(v) => onViewSizeChange?.(side, v)}
+        />
         <span>{name}</span>
         <span style={{
           fontSize: '18px',
@@ -229,6 +243,8 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
           🔒 {lockRemaining}s
         </div>
       )}
+
+      </div>
     </div>
   );
 }

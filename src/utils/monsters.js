@@ -1,4 +1,4 @@
-import { PRIMES, MONSTER_TYPES, COLS } from './constants.js';
+import { PRIMES, EASY_UNIQUE_PRIMES, MONSTER_TYPES, COLS } from './constants.js';
 
 let nextId = 1;
 
@@ -64,13 +64,39 @@ function pickPrimeForBoss(factorsSoFar, rand = Math.random) {
   return pickRandom(allowed.length ? allowed : PRIMES, rand);
 }
 
+// ============================================================
+// 难度（只影响出题范围，玩法/计分/速度一律不变）
+// ============================================================
+// normal：进阶（原本的出题范围），小怪大怪不限、BOSS 走 pickPrimeForBoss
+// easy  ：基础，小怪不限；大怪的 7/13、BOSS 的 7/11/13 各自最多出现一次
+let difficulty = 'normal';
+
+export function setMonsterDifficulty(level) {
+  difficulty = level === 'easy' ? 'easy' : 'normal';
+}
+
+export function getMonsterDifficulty() { return difficulty; }
+
+// 基础模式：本类型的「限一次」质数一旦已被选过，就从候选中剔除
+function pickPrimeEasy(type, factorsSoFar, rand = Math.random) {
+  const uniquePrimes = EASY_UNIQUE_PRIMES[type] || [];
+  if (uniquePrimes.length === 0) return pickRandom(PRIMES, rand);
+  const allowed = PRIMES.filter(
+    (p) => !(uniquePrimes.includes(p) && factorsSoFar.includes(p))
+  );
+  // 理论上 allowed 不会为空（2/3/5 永不受限）；兜底避免极端情况下报错
+  return pickRandom(allowed.length ? allowed : PRIMES, rand);
+}
+
 export function createMonster(type, existingMonsters) {
   const config = MONSTER_TYPES[type];
   const factors = [];
   let value = 1;
   // 数值：arena 模式走确定性流（人人相同）；落点仍随各自战局（下方 Math.random）
   const valueRand = valueStreams ? valueStreams[type] : Math.random;
-  const pickPrime = type === 'boss' ? () => pickPrimeForBoss(factors, valueRand) : () => pickRandom(PRIMES, valueRand);
+  const pickPrime = difficulty === 'easy'
+    ? () => pickPrimeEasy(type, factors, valueRand)
+    : (type === 'boss' ? () => pickPrimeForBoss(factors, valueRand) : () => pickRandom(PRIMES, valueRand));
   for (let i = 0; i < config.factorCount; i++) {
     const p = pickPrime();
     factors.push(p);

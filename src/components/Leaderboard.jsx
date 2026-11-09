@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { COLORS } from '../utils/constants.js';
-import { getScores, clearScores } from '../utils/scores.js';
+import { getScores, clearScores, recordDifficulty } from '../utils/scores.js';
 
 export default function Leaderboard({ onBack }) {
   const [tab, setTab] = useState('all');
+  const [diffTab, setDiffTab] = useState('all');
   const [, forceUpdate] = useState(0);
 
   const mode = tab === 'all' ? null : tab;
-  const scores = getScores(mode);
+  const difficulty = diffTab === 'all' ? null : diffTab;
+  const scores = getScores(mode, difficulty);
 
-  const tabStyle = (t) => ({
+  const pillStyle = (active) => ({
     padding: '8px 20px',
     fontSize: '14px',
     fontWeight: 'bold',
-    backgroundColor: tab === t ? '#fbbf24' : '#1a2234',
-    color: tab === t ? '#000' : '#9ca3af',
+    backgroundColor: active ? '#fbbf24' : '#1a2234',
+    color: active ? '#000' : '#9ca3af',
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',
@@ -22,6 +24,9 @@ export default function Leaderboard({ onBack }) {
     userSelect: 'none',
     WebkitUserSelect: 'none',
   });
+
+  const tabStyle = (t) => pillStyle(tab === t);
+  const diffTabStyle = (t) => pillStyle(diffTab === t);
 
   return (
     <div style={{
@@ -63,6 +68,12 @@ export default function Leaderboard({ onBack }) {
         <button onPointerDown={(e) => { e.preventDefault(); setTab('all'); }} style={tabStyle('all')}>全部</button>
         <button onPointerDown={(e) => { e.preventDefault(); setTab('solo'); }} style={tabStyle('solo')}>单人</button>
         <button onPointerDown={(e) => { e.preventDefault(); setTab('duo'); }} style={tabStyle('duo')}>双人</button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button onPointerDown={(e) => { e.preventDefault(); setDiffTab('all'); }} style={diffTabStyle('all')}>全部难度</button>
+        <button onPointerDown={(e) => { e.preventDefault(); setDiffTab('easy'); }} style={diffTabStyle('easy')}>基础</button>
+        <button onPointerDown={(e) => { e.preventDefault(); setDiffTab('normal'); }} style={diffTabStyle('normal')}>进阶</button>
       </div>
 
       <div style={{
@@ -111,6 +122,17 @@ export default function Leaderboard({ onBack }) {
                   {record.result === 'win' && ' 胜'}
                   {record.result === 'lose' && ' 负'}
                   {record.result === 'draw' && ' 平'}
+                </span>
+                <span style={{
+                  marginLeft: '6px',
+                  padding: '1px 6px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  borderRadius: '4px',
+                  backgroundColor: recordDifficulty(record) === 'easy' ? '#064e3b' : '#312e81',
+                  color: recordDifficulty(record) === 'easy' ? '#6ee7b7' : '#a5b4fc',
+                }}>
+                  {recordDifficulty(record) === 'easy' ? '基础' : '进阶'}
                 </span>
               </div>
               <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>

@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { COLORS, DEFAULT_DURATION } from '../utils/constants.js';
 import { useGameLoop } from '../hooks/useGameLoop.js';
+import { setMonsterDifficulty } from '../utils/monsters.js';
 import PlayerSide from './PlayerSide.jsx';
 import Timer from './Timer.jsx';
 import Results from './Results.jsx';
+import ViewSizeToggle from './ViewSizeToggle.jsx';
+import { loadViewSize, saveViewSize } from '../utils/viewSize.js';
 
 function getUrlParams() {
   const params = new URLSearchParams(window.location.search);
@@ -18,10 +21,17 @@ function getUrlParams() {
   };
 }
 
-export default function Game({ onBack, onLeaderboard }) {
+export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
   const { nameA, nameB, matchId, isTournament, duration } = getUrlParams();
   const [, forceUpdate] = useState(0);
   const [endState, setEndState] = useState(null);
+  // 画面尺寸：两侧各自独立，上次的选择会被记住
+  const [viewSize, setViewSize] = useState(() => ({ A: loadViewSize('A'), B: loadViewSize('B') }));
+
+  const changeViewSize = useCallback((side, size) => {
+    setViewSize((prev) => ({ ...prev, [side]: size }));
+    saveViewSize(side, size);
+  }, []);
 
   const handleEnd = useCallback((state) => {
     setEndState({ playerA: { ...state.playerA }, playerB: { ...state.playerB } });
@@ -56,6 +66,8 @@ export default function Game({ onBack, onLeaderboard }) {
   const renderRef = useRef(null);
 
   useEffect(() => {
+    // 必须在 init() 之前 —— 开局那 2 只小怪是 init 里就生成的
+    setMonsterDifficulty(difficulty);
     init();
     startCountdown();
 
@@ -66,7 +78,7 @@ export default function Game({ onBack, onLeaderboard }) {
     return () => {
       if (renderRef.current) clearInterval(renderRef.current);
     };
-  }, [init, startCountdown]);
+  }, [init, startCountdown, difficulty]);
 
   const state = getState();
   if (!state) return null;
@@ -78,6 +90,7 @@ export default function Game({ onBack, onLeaderboard }) {
         playerB={endState.playerB}
         nameA={nameA}
         nameB={nameB}
+        difficulty={difficulty}
         isTournament={isTournament}
         onRestart={() => {
           setEndState(null);
@@ -91,14 +104,19 @@ export default function Game({ onBack, onLeaderboard }) {
   }
 
   if (state.phase === 'countdown') {
+    // 倒数画面也放尺寸切换：从 tournament hub 进来是直接进游戏的，
+    // 这里是比赛开打前唯一能调整的时机（对局中仍可在信息栏随时改）
     return (
       <div style={{
         width: '100%',
         height: '100%',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: '24px',
         backgroundColor: COLORS.bg,
+        padding: '20px',
       }}>
         <div style={{
           fontSize: '96px',
@@ -106,6 +124,27 @@ export default function Game({ onBack, onLeaderboard }) {
           color: '#fbbf24',
         }}>
           {state.countdownValue}
+        </div>
+
+        <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[
+            { side: 'A', name: nameA, color: COLORS.playerA },
+            { side: 'B', name: nameB, color: COLORS.playerB },
+          ].map(({ side, name, color }) => (
+            <div key={side} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 'bold', color }}>{name}</span>
+              <ViewSizeToggle
+                value={viewSize[side]}
+                playerColor={color}
+                big
+                onChange={(v) => changeViewSize(side, v)}
+              />
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
+          画面尺寸：大屏铺满整个半边；紧凑把画面收窄并整体上移，按钮更靠手、左右不用大幅移动。
+          <br />选择会被记住，对局中也能随时切换。
         </div>
       </div>
     );
@@ -148,6 +187,8 @@ export default function Game({ onBack, onLeaderboard }) {
         onShoot={shoot}
         timeLeft={state.timeLeft}
         duration={duration * 1000}
+        viewSize={viewSize.A}
+        onViewSizeChange={changeViewSize}
       />
 
       <div style={{
@@ -165,6 +206,8 @@ export default function Game({ onBack, onLeaderboard }) {
         onShoot={shoot}
         timeLeft={state.timeLeft}
         duration={duration * 1000}
+        viewSize={viewSize.B}
+        onViewSizeChange={changeViewSize}
       />
       </div>
     </div>

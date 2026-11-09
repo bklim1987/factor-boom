@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { COLORS } from '../utils/constants.js';
 import { playVictory } from '../utils/sounds.js';
 import { saveScore } from '../utils/scores.js';
+import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf } from '../utils/accuracy.js';
 
 const inputStyle = {
   padding: '6px 10px',
@@ -19,15 +20,15 @@ function formatDetail(detail) {
   return `${detail.small}+${detail.big}+${detail.boss}`;
 }
 
-function StatLine({ label, value, visible }) {
+function StatLine({ label, value, visible, highlight = false }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-      <span>{label}:</span>
+      <span style={{ color: highlight ? '#fbbf24' : undefined }}>{label}:</span>
       <span style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.3s ease-in',
         fontWeight: 'bold',
-        color: '#e5e7eb',
+        color: highlight ? '#fbbf24' : '#e5e7eb',
       }}>
         {value}
       </span>
@@ -35,7 +36,26 @@ function StatLine({ label, value, visible }) {
   );
 }
 
-export default function Results({ playerA, playerB, nameA, nameB, isTournament, onRestart, onBack, onLeaderboard }) {
+function buildStats(player) {
+  const kd = player.killDetail || { normal: { small: 0, big: 0, boss: 0 }, combo: { small: 0, big: 0, boss: 0 } };
+  const md = player.missDetail || { small: 0, big: 0, boss: 0 };
+  const acc = getAccuracy(player);
+  return [
+    { label: 'x1.0击杀', value: formatDetail(kd.normal) },
+    { label: 'x1.5击杀', value: formatDetail(kd.combo) },
+    { label: '逃脱', value: `${formatDetail(md)} (-${escapeScoreOf(player)}分)` },
+    { label: '误击', value: player.locks },
+    { label: '击杀得分', value: killScoreOf(player) },
+    { label: '准确率', value: acc.shots > 0 ? `${accuracyPercent(player)}% (${acc.hits}对${acc.misses}错)` : '—' },
+    {
+      label: '准确率奖励',
+      value: `击杀分×${bonusPercent(player)}% = +${player.accuracyBonus || 0}分`,
+      highlight: true,
+    },
+  ];
+}
+
+export default function Results({ playerA, playerB, nameA, nameB, difficulty, isTournament, onRestart, onBack, onLeaderboard }) {
   const winner = playerA.score > playerB.score ? 'A'
     : playerB.score > playerA.score ? 'B'
     : 'draw';
@@ -54,7 +74,7 @@ export default function Results({ playerA, playerB, nameA, nameB, isTournament, 
     }
   }, []);
 
-  const STAT_COUNT = 4;
+  const STAT_COUNT = buildStats(playerA).length;
   useEffect(() => {
     if (revealStep < STAT_COUNT) {
       const timer = setTimeout(() => setRevealStep(s => s + 1), 500);
@@ -70,12 +90,12 @@ export default function Results({ playerA, playerB, nameA, nameB, isTournament, 
     const finalNameA = editNameA.trim() || nameA;
     const finalNameB = editNameB.trim() || nameB;
     saveScore({
-      mode: 'duo', name: finalNameA, score: playerA.score,
+      mode: 'duo', difficulty, name: finalNameA, score: playerA.score,
       kills: playerA.kills, maxCombo: playerA.maxCombo,
       missed: playerA.missed, locks: playerA.locks, result: resultA,
     });
     saveScore({
-      mode: 'duo', name: finalNameB, score: playerB.score,
+      mode: 'duo', difficulty, name: finalNameB, score: playerB.score,
       kills: playerB.kills, maxCombo: playerB.maxCombo,
       missed: playerB.missed, locks: playerB.locks, result: resultB,
     });
@@ -86,17 +106,6 @@ export default function Results({ playerA, playerB, nameA, nameB, isTournament, 
     { side: 'A', name: editNameA, setName: setEditNameA, player: playerA, color: COLORS.playerA },
     { side: 'B', name: editNameB, setName: setEditNameB, player: playerB, color: COLORS.playerB },
   ];
-
-  function buildStats(player) {
-    const kd = player.killDetail || { normal: { small: 0, big: 0, boss: 0 }, combo: { small: 0, big: 0, boss: 0 } };
-    const md = player.missDetail || { small: 0, big: 0, boss: 0 };
-    return [
-      { label: 'x1.0击杀', value: formatDetail(kd.normal) },
-      { label: 'x1.5击杀', value: formatDetail(kd.combo) },
-      { label: '逃脱', value: formatDetail(md) },
-      { label: '误击', value: player.locks },
-    ];
-  }
 
   return (
     <div style={{
@@ -160,7 +169,7 @@ export default function Results({ playerA, playerB, nameA, nameB, isTournament, 
               <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>小怪+大怪+BOSS</div>
               <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.8 }}>
                 {stats.map((s, i) => (
-                  <StatLine key={s.label} label={s.label} value={s.value} visible={i < revealStep} />
+                  <StatLine key={s.label} label={s.label} value={s.value} visible={i < revealStep} highlight={s.highlight} />
                 ))}
               </div>
             </div>

@@ -2,6 +2,14 @@ export const COLS = 5;
 export const ROWS = 10;
 export const TICK_MS = 100;
 export const PRIMES = [2, 3, 5, 7, 11, 13];
+// 基础难度：同一只怪里，这些质数各自最多出现一次（按怪物类型分别设定）。
+// 只卡「重复」不卡「组合」，所以 7×11×13=1001 这类好题仍然出得来；
+// 小怪完全不限，7²/11²/13² 这些平方数题目照常出现。
+export const EASY_UNIQUE_PRIMES = {
+  small: [],
+  big: [7, 13],
+  boss: [7, 11, 13],
+};
 export const SPAWN_INTERVAL = 3000;
 export const LOCK_DURATION = 1000;
 export const HIT_FLASH_DURATION = 300;

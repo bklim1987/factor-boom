@@ -29,7 +29,7 @@ const MANIFEST = {
   ownsSettlement: true,   // 本游戏自带结算卡，平台练习页不必兜底
 };
 
-export default function ArenaGame() {
+export default function ArenaGame({ difficulty = 'normal' }) {
   const [phase, setPhase] = useState('waiting'); // waiting → playing → frozen
   const [gameKey, setGameKey] = useState(0);
   const [durationSec, setDurationSec] = useState(60);
@@ -137,7 +137,7 @@ export default function ArenaGame() {
       position: 'relative',
       pointerEvents: phase === 'frozen' ? 'none' : 'auto',
     }}>
-      <SoloGame key={gameKey} arena={arenaHooks} />
+      <SoloGame key={gameKey} difficulty={difficulty} arena={arenaHooks} />
       {phase === 'playing' && isPractice && (
         <>
           <button

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { TICK_MS, ROWS, COLS, SPAWN_INTERVAL, LOCK_DURATION, COMBO_THRESHOLD, COMBO_MULTIPLIER, MONSTER_TYPES } from '../utils/constants.js';
 import { createMonster } from '../utils/monsters.js';
+import { applyAccuracyBonus } from '../utils/accuracy.js';
 import { playHit, playMiss, playKill } from '../utils/sounds.js';
 
 function createPlayerState() {
@@ -14,12 +15,15 @@ function createPlayerState() {
     locked: false,
     lockAcc: 0,
     kills: 0,
+    killScore: 0,    // 击杀得分（逃脱扣分之前）—— 准确率奖励就按这个数算
+    escapeScore: 0,  // 逃脱一共扣掉多少分
     killDetail: { normal: { small: 0, big: 0, boss: 0 }, combo: { small: 0, big: 0, boss: 0 } },
     spawnAcc: 0,
     nextBigAt: 3,
     nextBossAt: 10,
     missed: 0,
     missDetail: { small: 0, big: 0, boss: 0 },
+    hits: 0,  // 点对的次数（locks 是点错的次数）—— 两者算出准确率奖励
     locks: 0,
     missFlash: 0,
     screenShake: 0,
@@ -112,6 +116,7 @@ export function useGameLoop(duration, onEnd) {
         const nextRow = m.row + 1;
         if (nextRow >= ROWS) {
           p.score -= m.pts;
+          p.escapeScore += m.pts;
           p.missed += 1;
           p.missDetail[m.type] += 1;
           p.escapeEffects.push({
@@ -184,6 +189,8 @@ export function useGameLoop(duration, onEnd) {
       s.timeLeft = 0;
       s.phase = 'ended';
       s.running = false;
+      applyAccuracyBonus(s.playerA);
+      applyAccuracyBonus(s.playerB);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -217,6 +224,7 @@ export function useGameLoop(duration, onEnd) {
     const target = monstersInCol[0];
 
     if (target.value % prime === 0) {
+      p.hits += 1;
       target.value = target.value / prime;
       target.hitFlash = 300;
       if (target.type === 'boss' && target.value > 1) {
@@ -232,6 +240,7 @@ export function useGameLoop(duration, onEnd) {
       if (target.value === 1) {
         const earned = Math.round(target.pts * p.mult);
         p.score += earned;
+        p.killScore += earned;
         p.kills += 1;
         const multKey = p.mult > 1 ? 'combo' : 'normal';
         p.killDetail[multKey][target.type] += 1;

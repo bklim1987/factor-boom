@@ -2,10 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, DEFAULT_DURATION, PROJECTILE_FLIGHT_MS } from '../utils/constants.js';
 import { useSoloGameLoop } from '../hooks/useSoloGameLoop.js';
 import { saveScore } from '../utils/scores.js';
+import { setMonsterDifficulty } from '../utils/monsters.js';
 import { playVictory } from '../utils/sounds.js';
 import GameGrid from './GameGrid.jsx';
 import PrimeButton from './PrimeButton.jsx';
 import Timer from './Timer.jsx';
+import ViewSizeToggle from './ViewSizeToggle.jsx';
+import { loadViewSize, saveViewSize, viewSizeStyle } from '../utils/viewSize.js';
+import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf } from '../utils/accuracy.js';
 
 function formatDetail(detail) {
   return `${detail.small}+${detail.big}+${detail.boss}`;
@@ -14,11 +18,19 @@ function formatDetail(detail) {
 function buildSoloStats(player) {
   const kd = player.killDetail || { normal: { small: 0, big: 0, boss: 0 }, combo: { small: 0, big: 0, boss: 0 } };
   const md = player.missDetail || { small: 0, big: 0, boss: 0 };
+  const acc = getAccuracy(player);
   return [
     { label: 'x1.0击杀', value: formatDetail(kd.normal) },
     { label: 'x1.5击杀', value: formatDetail(kd.combo) },
-    { label: '逃脱', value: formatDetail(md) },
+    { label: '逃脱', value: `${formatDetail(md)} (-${escapeScoreOf(player)}分)` },
     { label: '误击', value: player.locks },
+    { label: '击杀得分', value: killScoreOf(player) },
+    { label: '准确率', value: acc.shots > 0 ? `${accuracyPercent(player)}% (${acc.hits}对${acc.misses}错)` : '—' },
+    {
+      label: '准确率奖励',
+      value: `击杀分×${bonusPercent(player)}% = +${player.accuracyBonus || 0}分`,
+      highlight: true,
+    },
   ];
 }
 
@@ -41,6 +53,7 @@ const soloResultScreenStyle = {
 
 function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
   const [revealStep, setRevealStep] = useState(0);
+  const stats = buildSoloStats(player);
 
   const played = useRef(false);
   useEffect(() => {
@@ -51,14 +64,14 @@ function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
   }, []);
 
   useEffect(() => {
-    if (revealStep < 4) {
+    if (revealStep < stats.length) {
       const timer = setTimeout(() => setRevealStep(s => s + 1), 500);
       return () => clearTimeout(timer);
     }
     if (!onStatsRevealed) return undefined;
     const btnTimer = setTimeout(onStatsRevealed, 500);
     return () => clearTimeout(btnTimer);
-  }, [revealStep, onStatsRevealed]);
+  }, [revealStep, stats.length, onStatsRevealed]);
 
   return (
     <>
@@ -80,14 +93,14 @@ function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
         </div>
         <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>小怪+大怪+BOSS</div>
         <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.8 }}>
-          {buildSoloStats(player).map((s, i) => (
+          {stats.map((s, i) => (
             <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-              <span>{s.label}:</span>
+              <span style={{ color: s.highlight ? '#fbbf24' : undefined }}>{s.label}:</span>
               <span style={{
                 opacity: i < revealStep ? 1 : 0,
                 transition: 'opacity 0.3s ease-in',
                 fontWeight: 'bold',
-                color: '#e5e7eb',
+                color: s.highlight ? '#fbbf24' : '#e5e7eb',
               }}>
                 {s.value}
               </span>
@@ -101,7 +114,7 @@ function SoloResultCard({ player, footer = null, onStatsRevealed = null }) {
   );
 }
 
-function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
+function SoloResults({ player, difficulty, onRestart, onBack, onLeaderboard }) {
   const [name, setName] = useState('');
   const [saved, setSaved] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
@@ -112,6 +125,7 @@ function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
     const finalName = name.trim() || '单人挑战';
     saveScore({
       mode: 'solo',
+      difficulty,
       name: finalName,
       score: player.score,
       kills: player.kills,
@@ -248,7 +262,7 @@ function SoloResults({ player, onRestart, onBack, onLeaderboard }) {
   );
 }
 
-export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
+export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard, arena = null }) {
   // arena（可选）：Arena 平台模式的钩子，不传则一切照旧（solo/duo 零改动）。
   //   { durationSec, onScoreDelta(delta), onLocalEnd({score,kills}) }
   //   平台模式下：时长来自平台、跳过自带 3-2-1（平台已经数过）、
@@ -257,24 +271,53 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
   const [endState, setEndState] = useState(null);
   const [projectiles, setProjectiles] = useState([]);
   const gridRef = useRef(null);
+  // 画面尺寸：大屏上缩成手机荧幕更好操控；选择会被记住
+  const [viewSize, setViewSize] = useState(() => loadViewSize('solo'));
+
+  const changeViewSize = useCallback((size) => {
+    setViewSize(size);
+    saveViewSize('solo', size);
+  }, []);
 
   const duration = arena?.durationSec || DEFAULT_DURATION;
 
   const arenaRef = useRef(arena);
   arenaRef.current = arena;
 
-  const handleEnd = useCallback((state) => {
-    setEndState({ player: { ...state.player } });
-    if (arenaRef.current) {
-      arenaRef.current.onLocalEnd?.({ score: state.player.score, kills: state.player.kills });
+  // 平台模式的对账游标：定时对账和局末补报共用，避免同一笔分数报两次
+  const lastReportedRef = useRef(0);
+  // getState 来自下面的钩子，而钩子要先吃掉 handleEnd，只能用 ref 回指
+  const getStateRef = useRef(null);
+
+  const flushArenaScore = useCallback(() => {
+    if (!arenaRef.current) return;
+    const s = getStateRef.current?.();
+    if (!s || !s.player) return;
+    const sc = s.player.score;
+    if (sc !== lastReportedRef.current) {
+      arenaRef.current.onScoreDelta?.(sc - lastReportedRef.current);
+      lastReportedRef.current = sc;
     }
   }, []);
 
+  const handleEnd = useCallback((state) => {
+    setEndState({ player: { ...state.player } });
+    if (arenaRef.current) {
+      // 先补报一次：准确率奖励是局末才加到总分上的，而平台可能在同一刻
+      // 发来 arena:end 冻结报分，等下一次 100ms 对账就来不及了
+      flushArenaScore();
+      arenaRef.current.onLocalEnd?.({ score: state.player.score, kills: state.player.kills });
+    }
+  }, [flushArenaScore]);
+
   const { getState, init, startCountdown, moveCannon, shoot } = useSoloGameLoop(duration, handleEnd);
+  getStateRef.current = getState;
 
   const renderRef = useRef(null);
 
   useEffect(() => {
+    // 必须在 init() 之前 —— 开局那 2 只小怪是 init 里就生成的
+    setMonsterDifficulty(difficulty);
     init();
     startCountdown();
     if (arenaRef.current) {
@@ -285,7 +328,7 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
     }
     renderRef.current = setInterval(() => forceUpdate(n => n + 1), 50);
     return () => { if (renderRef.current) clearInterval(renderRef.current); };
-  }, [init, startCountdown, getState]);
+  }, [init, startCountdown, getState, difficulty]);
 
   // 平台模式：每 100ms 对账一次，把分数「增量」报给平台（含负分——怪逃脱扣分）。
   //
@@ -293,18 +336,15 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
   //   ArenaGame 每次渲染都新建 arenaHooks 对象，且每报一次分就 setLastScore→重渲染。
   //   若把 arena 放进依赖，本 effect 会随之反复拆装：定时器每次重建，闭包里的 last 归零，
   //   下一拍就把「当前总分」当增量重报一遍 → 平台分每 100ms 翻涌暴走（-800 报成 -97100）。
-  //   回调本就走 arenaRef.current，无需 arena 进依赖。装一次、last 常驻，才对得上账。
+  //   回调本就走 arenaRef.current，无需 arena 进依赖。装一次、游标常驻，才对得上账。
+  //   游标现在放在 lastReportedRef 里（原本是闭包里的 last），好让局末的
+  //   flushArenaScore 和这里共用同一笔账，奖励不会被报两遍。
   useEffect(() => {
     if (!arenaRef.current) return; // 非平台模式（solo/duo）不上报
-    let last = 0;
-    const t = setInterval(() => {
-      const s = getState();
-      if (!s || !s.player) return;
-      const sc = s.player.score;
-      if (sc !== last) { arenaRef.current?.onScoreDelta?.(sc - last); last = sc; }
-    }, 100);
+    lastReportedRef.current = 0;
+    const t = setInterval(flushArenaScore, 100);
     return () => clearInterval(t);
-  }, [getState]);
+  }, [flushArenaScore]);
 
 
   const state = getState();
@@ -326,6 +366,7 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
     return (
       <SoloResults
         player={endState.player}
+        difficulty={difficulty}
         onLeaderboard={onLeaderboard}
         onRestart={() => {
           setEndState(null);
@@ -344,12 +385,25 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
         width: '100%',
         height: '100%',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: '24px',
         backgroundColor: COLORS.bg,
+        padding: '20px',
       }}>
         <div style={{ fontSize: '96px', fontWeight: 'bold', color: '#fbbf24' }}>
           {state.countdownValue}
+        </div>
+        <ViewSizeToggle
+          value={viewSize}
+          playerColor={COLORS.playerA}
+          big
+          onChange={changeViewSize}
+        />
+        <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
+          大屏上选「紧凑」可把画面收窄并整体上移，按钮更靠手、左右不用大幅移动。
+          <br />选择会被记住，对局中也能随时切换。
         </div>
       </div>
     );
@@ -404,18 +458,29 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'center',
+        // 靠上对齐：紧凑模式下空白留在下方，按钮整体上移
+        justifyContent: 'flex-start',
         backgroundColor: COLORS.bg,
       }}
     >
+      <div style={viewSizeStyle(viewSize)}>
+
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: '8px',
         padding: '8px 16px',
         color: COLORS.playerA,
         fontSize: '14px',
         fontWeight: 'bold',
       }}>
+        <ViewSizeToggle
+          value={viewSize}
+          playerColor={COLORS.playerA}
+          onChange={changeViewSize}
+        />
         <span style={{ fontSize: '18px' }}>
           <span style={{
             color: comboActive ? '#fbbf24' : COLORS.playerA,
@@ -555,6 +620,8 @@ export default function SoloGame({ onBack, onLeaderboard, arena = null }) {
           🔒 {lockRemaining}s
         </div>
       )}
+
+      </div>
     </div>
   );
 }
