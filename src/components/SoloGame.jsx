@@ -8,9 +8,7 @@ import GameGrid from './GameGrid.jsx';
 import PrimeButton from './PrimeButton.jsx';
 import Timer from './Timer.jsx';
 import ViewSizeToggle from './ViewSizeToggle.jsx';
-import PrimeLayoutToggle from './PrimeLayoutToggle.jsx';
 import { loadViewSize, saveViewSize, viewSizeStyle } from '../utils/viewSize.js';
-import { loadPrimeLayout, savePrimeLayout } from '../utils/primeLayout.js';
 import { getAccuracy, accuracyPercent, bonusPercent, killScoreOf, escapeScoreOf, scoreBeforeBonus } from '../utils/accuracy.js';
 import BrainUpgrade from './BrainUpgrade.jsx';
 import ScoreRoll, { rollDurationMs } from './ScoreRoll.jsx';
@@ -185,15 +183,10 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
   const gridRef = useRef(null);
   // 画面尺寸：大屏上缩成手机荧幕更好操控；选择会被记住
   const [viewSize, setViewSize] = useState(() => loadViewSize('solo'));
-  const [primeLayout, setPrimeLayout] = useState(loadPrimeLayout);
 
   const changeViewSize = useCallback((size) => {
     setViewSize(size);
     saveViewSize('solo', size);
-  }, []);
-
-  const changePrimeLayout = useCallback((layout) => {
-    setPrimeLayout(savePrimeLayout(layout));
   }, []);
 
   const duration = arena?.durationSec || DEFAULT_DURATION;
@@ -229,10 +222,8 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
     }
   }, [flushArenaScore]);
 
-  const { getState, init, startCountdown, moveCannon, shoot, endMatch } = useSoloGameLoop(duration, handleEnd);
+  const { getState, init, startCountdown, moveCannon, shoot } = useSoloGameLoop(duration, handleEnd);
   getStateRef.current = getState;
-  // 平台时间到会调用这个：本地计时可能还差几十毫秒，不能干等，否则奖励分报不出去
-  if (arenaRef.current) arenaRef.current.registerEnd?.(endMatch);
 
   const renderRef = useRef(null);
 
@@ -327,15 +318,8 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
           big
           onChange={changeViewSize}
         />
-        <PrimeLayoutToggle
-          value={primeLayout}
-          playerColor={COLORS.playerA}
-          big
-          onChange={changePrimeLayout}
-        />
         <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
           选「小屏」可把画面收成手机大小并整体上移，按钮更靠手、左右不用大幅移动。
-          <br />按键：窄屏默认两排，减少误触；选「一排」则与大屏相同。够宽时始终一排。
           <br />选择会被记住，对局中也能随时切换。
         </div>
       </div>
@@ -395,7 +379,6 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
         // 靠上对齐：紧凑模式下空白留在下方，按钮整体上移
         justifyContent: 'flex-start',
         backgroundColor: COLORS.bg,
-        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       <div style={viewSizeStyle(viewSize)}>
@@ -410,18 +393,11 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
         fontSize: '14px',
         fontWeight: 'bold',
       }}>
-        <div style={{ display: 'flex', gap: '3px', alignItems: 'center', flexShrink: 0 }}>
-          <ViewSizeToggle
-            value={viewSize}
-            playerColor={COLORS.playerA}
-            onChange={changeViewSize}
-          />
-          <PrimeLayoutToggle
-            value={primeLayout}
-            playerColor={COLORS.playerA}
-            onChange={changePrimeLayout}
-          />
-        </div>
+        <ViewSizeToggle
+          value={viewSize}
+          playerColor={COLORS.playerA}
+          onChange={changeViewSize}
+        />
         <span style={{ fontSize: '18px' }}>
           <span style={{
             color: comboActive ? '#fbbf24' : COLORS.playerA,
@@ -504,18 +480,22 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
         </div>
       </div>
 
-      <div className="prime-dock" data-layout={primeLayout === 'row' ? 'row' : 'wrap'}>
-        <div className="prime-bar">
-          {PRIMES.map(p => (
-            <PrimeButton
-              key={p}
-              prime={p}
-              disabled={player.locked}
-              playerColor={COLORS.playerA}
-              onFire={handleShoot}
-            />
-          ))}
-        </div>
+      <div style={{
+        display: 'flex',
+        gap: '6px',
+        padding: '6px 12px',
+        paddingBottom: '20px',
+        minHeight: '60px',
+      }}>
+        {PRIMES.map(p => (
+          <PrimeButton
+            key={p}
+            prime={p}
+            disabled={player.locked}
+            playerColor={COLORS.playerA}
+            onFire={handleShoot}
+          />
+        ))}
       </div>
 
       {(() => {
