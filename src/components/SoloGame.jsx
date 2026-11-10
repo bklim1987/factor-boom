@@ -482,10 +482,10 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
 
       <div style={{
         display: 'flex',
-        gap: '6px',
-        padding: '6px 12px',
+        gap: '10px',
+        padding: '6px 4px',
         paddingBottom: '20px',
-        minHeight: '60px',
+        minHeight: '72px',
       }}>
         {PRIMES.map(p => (
           <PrimeButton
@@ -503,7 +503,7 @@ export default function SoloGame({ difficulty = 'normal', onBack, onLeaderboard,
         const isUrgent = state.timeLeft / 1000 <= 10;
         return (
           <div style={{
-            padding: '0 12px',
+            padding: '0 4px',
             height: '5px',
           }}>
             <div style={{

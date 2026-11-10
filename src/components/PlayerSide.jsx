@@ -186,12 +186,11 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
 
       <div style={{
         display: 'flex',
-        gap: '4px',
+        gap: '12px',
         padding: '4px 0',
-        paddingLeft: '20px',
-        paddingRight: '20px',
-        height: '12%',
-        minHeight: '48px',
+        // 至少放下 72px 的键再加上下内边距。只写 12% 时，窗口稍矮键就会溢出，盖住下面的进度条。
+        height: 'max(12%, 80px)',
+        flexShrink: 0,
       }}>
         {PRIMES.map(p => (
           <PrimeButton
@@ -209,8 +208,9 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
         const isUrgent = timeLeft / 1000 <= 10;
         return (
           <div style={{
-            padding: '0 20px',
+            padding: 0,
             height: '4px',
+            flexShrink: 0,
           }}>
             <div style={{
               width: '100%',

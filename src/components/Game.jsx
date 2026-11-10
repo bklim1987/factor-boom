@@ -195,10 +195,13 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
       />
 
       <div style={{
-        width: '2px',
-        backgroundColor: '#374151',
+        width: '28px',
         flexShrink: 0,
-      }} />
+        display: 'flex',
+        justifyContent: 'center',
+      }}>
+        <div style={{ width: '2px', backgroundColor: '#374151' }} />
+      </div>
 
       <PlayerSide
         player={state.playerB}
