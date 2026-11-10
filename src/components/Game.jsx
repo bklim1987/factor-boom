@@ -6,7 +6,9 @@ import PlayerSide from './PlayerSide.jsx';
 import Timer from './Timer.jsx';
 import Results from './Results.jsx';
 import ViewSizeToggle from './ViewSizeToggle.jsx';
+import PrimeLayoutToggle from './PrimeLayoutToggle.jsx';
 import { loadViewSize, saveViewSize } from '../utils/viewSize.js';
+import { loadPrimeLayout, savePrimeLayout } from '../utils/primeLayout.js';
 import { playTimeUp } from '../utils/sounds.js';
 
 function getUrlParams() {
@@ -28,10 +30,15 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
   const [endState, setEndState] = useState(null);
   // 画面尺寸：两侧各自独立，上次的选择会被记住
   const [viewSize, setViewSize] = useState(() => ({ A: loadViewSize('A'), B: loadViewSize('B') }));
+  const [primeLayout, setPrimeLayout] = useState(loadPrimeLayout);
 
   const changeViewSize = useCallback((side, size) => {
     setViewSize((prev) => ({ ...prev, [side]: size }));
     saveViewSize(side, size);
+  }, []);
+
+  const changePrimeLayout = useCallback((layout) => {
+    setPrimeLayout(savePrimeLayout(layout));
   }, []);
 
   const handleEnd = useCallback((state) => {
@@ -145,8 +152,15 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
             </div>
           ))}
         </div>
+        <PrimeLayoutToggle
+          value={primeLayout}
+          playerColor="#fbbf24"
+          big
+          onChange={changePrimeLayout}
+        />
         <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
           画面尺寸：大屏铺满整个半边；小屏收成手机画面并整体上移，按钮更靠手、左右不用大幅移动。
+          <br />按键：窄屏默认两排，减少误触；选「一排」则与大屏相同。够宽时始终一排。
           <br />选择会被记住，对局中也能随时切换。
         </div>
       </div>
@@ -192,6 +206,8 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
         duration={duration * 1000}
         viewSize={viewSize.A}
         onViewSizeChange={changeViewSize}
+        primeLayout={primeLayout}
+        onPrimeLayoutChange={changePrimeLayout}
       />
 
       <div style={{
@@ -211,6 +227,8 @@ export default function Game({ difficulty = 'normal', onBack, onLeaderboard }) {
         duration={duration * 1000}
         viewSize={viewSize.B}
         onViewSizeChange={changeViewSize}
+        primeLayout={primeLayout}
+        onPrimeLayoutChange={changePrimeLayout}
       />
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { COLORS } from '../utils/constants.js';
+import { loadPrimeLayout, savePrimeLayout } from '../utils/primeLayout.js';
 import RulesPanel, { useShortScreen } from './RulesPanel.jsx';
 
 // 和结算页同一条宽。下面只有一颗会开局的按钮，
@@ -78,6 +79,7 @@ function SettingRow({ label, options, value, onChange }) {
 
 export default function Menu({ difficulty = 'normal', onSelectDifficulty, onStartSolo, onStartDuo, onLeaderboard }) {
   const [mode, setMode] = useState('duo');
+  const [primeLayout, setPrimeLayout] = useState(loadPrimeLayout);
   const short = useShortScreen();
   const solo = mode === 'solo';
 
@@ -130,9 +132,19 @@ export default function Menu({ difficulty = 'normal', onSelectDifficulty, onStar
             { value: 'duo', label: '双人', color: '#fbbf24' },
           ]}
         />
+        <SettingRow
+          label="按键"
+          value={primeLayout}
+          onChange={(value) => setPrimeLayout(savePrimeLayout(value))}
+          options={[
+            { value: 'wrap', label: '两排', color: COLORS.playerA },
+            { value: 'row', label: '一排', color: '#fbbf24' },
+          ]}
+        />
         <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.45 }}>
           <div>{DIFFICULTY_HINT[difficulty] || DIFFICULTY_HINT.normal}</div>
           <div>{MODE_HINT[mode]}</div>
+          <div>按键：窄屏两排减少误触；一排与大屏相同。画面够宽时始终一排。</div>
         </div>
         <button
           type="button"

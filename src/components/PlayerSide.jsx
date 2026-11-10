@@ -3,9 +3,10 @@ import { PRIMES, COLS, ROWS, COLORS, COMBO_THRESHOLD, LOCK_DURATION, PROJECTILE_
 import GameGrid from './GameGrid.jsx';
 import PrimeButton from './PrimeButton.jsx';
 import ViewSizeToggle from './ViewSizeToggle.jsx';
+import PrimeLayoutToggle from './PrimeLayoutToggle.jsx';
 import { viewSizeStyle } from '../utils/viewSize.js';
 
-export default function PlayerSide({ player, name, side, playerColor, onMove, onShoot, timeLeft, duration, viewSize = 'full', onViewSizeChange }) {
+export default function PlayerSide({ player, name, side, playerColor, onMove, onShoot, timeLeft, duration, viewSize = 'full', onViewSizeChange, primeLayout = 'wrap', onPrimeLayoutChange }) {
   if (!player) return null;
 
   const [projectiles, setProjectiles] = useState([]);
@@ -76,7 +77,7 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
       justifyContent: 'flex-start',
       height: '100%',
       padding: '4px',
-      paddingBottom: '32px',
+      paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
       position: 'relative',
       backgroundColor: player.missFlash > 0 ? 'rgba(239,68,68,0.2)' : 'transparent',
       transition: 'background-color 0.15s',
@@ -109,11 +110,18 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
         fontSize: '14px',
         fontWeight: 'bold',
       }}>
-        <ViewSizeToggle
-          value={viewSize}
-          playerColor={playerColor}
-          onChange={(v) => onViewSizeChange?.(side, v)}
-        />
+        <div style={{ display: 'flex', gap: '3px', alignItems: 'center', flexShrink: 0 }}>
+          <ViewSizeToggle
+            value={viewSize}
+            playerColor={playerColor}
+            onChange={(v) => onViewSizeChange?.(side, v)}
+          />
+          <PrimeLayoutToggle
+            value={primeLayout}
+            playerColor={playerColor}
+            onChange={(v) => onPrimeLayoutChange?.(v)}
+          />
+        </div>
         <span>{name}</span>
         <span style={{
           fontSize: '18px',
@@ -184,24 +192,18 @@ export default function PlayerSide({ player, name, side, playerColor, onMove, on
         ))}
       </div>
 
-      <div style={{
-        display: 'flex',
-        gap: '4px',
-        padding: '4px 0',
-        paddingLeft: '20px',
-        paddingRight: '20px',
-        height: '12%',
-        minHeight: '48px',
-      }}>
-        {PRIMES.map(p => (
-          <PrimeButton
-            key={p}
-            prime={p}
-            disabled={player.locked}
-            playerColor={playerColor}
-            onFire={handleShoot}
-          />
-        ))}
+      <div className="prime-dock" data-layout={primeLayout === 'row' ? 'row' : 'wrap'}>
+        <div className="prime-bar">
+          {PRIMES.map(p => (
+            <PrimeButton
+              key={p}
+              prime={p}
+              disabled={player.locked}
+              playerColor={playerColor}
+              onFire={handleShoot}
+            />
+          ))}
+        </div>
       </div>
 
       {duration > 0 && (() => {

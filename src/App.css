@@ -17,6 +17,42 @@ html, body, #root {
 
 body {
   background: #0b1120;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* 质数键：宽屏始终一排六个。按钮区窄于 520px 时，
+   data-layout="wrap" 分成两排三列；"row" 仍保持一排。 */
+.prime-dock {
+  container: primeDock / inline-size;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.prime-bar {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+}
+
+.prime-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 56px;
+}
+
+@container primeDock (max-width: 520px) {
+  .prime-dock[data-layout="wrap"] .prime-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .prime-dock[data-layout="wrap"] .prime-btn {
+    min-height: 64px;
+  }
 }
 
 @keyframes pulse {

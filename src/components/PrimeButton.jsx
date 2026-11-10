@@ -5,6 +5,8 @@ export default function PrimeButton({ prime, disabled, playerColor, onFire }) {
 
   return (
     <button
+      type="button"
+      className="prime-btn"
       onPointerDown={(e) => {
         e.preventDefault();
         if (!disabled) {
@@ -17,9 +19,6 @@ export default function PrimeButton({ prime, disabled, playerColor, onFire }) {
       onPointerCancel={() => setPressed(false)}
       disabled={disabled}
       style={{
-        flex: 1,
-        height: '100%',
-        minHeight: '48px',
         fontSize: '19px',
         fontWeight: 'bold',
         border: `2px solid ${disabled ? '#555' : playerColor}`,
